@@ -20,9 +20,9 @@ services:
       - PROXY=1
       - BACKEND=http://php_container:80
       # modsecurity enable rule engine
-      - MODSEC_RULE_ENGINE=DetectionOnly
+      - MODSEC_RULE_ENGINE=On
       # mosecurity logs configuration
-      - MODSEC_AUDIT_ENGINE=On
+      - MODSEC_AUDIT_ENGINE=ReleventOnly
       - MODSEC_AUDIT_LOG_RELEVANT_STATUS=^(?:5|4(?!04))
       - MODSEC_AUDIT_LOG_PARTS=ABIJDEFHZ
       - MODSEC_AUDIT_LOG_TYPE=Serial
