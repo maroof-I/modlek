@@ -1,0 +1,86 @@
+version: '3'
+
+services:
+  modsecurity:
+    image: owasp/modsecurity-crs:apache
+    container_name: modsecurity
+    ports:
+      - "3010:8080"
+    volumes:
+      - ./modsec-config:/etc/modsecurity.d/
+      - ./modsec-logs:/var/log/modsecurity 
+        #- ./apache-config/proxy.conf:/etc/apache2/sites-enabled/000-default.conf
+    environment:
+      # CRS configuration
+      - BLOCKING_PARANOIA=2
+      - DETECTION_PARANOIA=4
+      - ANOMALY_INBOUND=5
+      - ANOMALY_OUTBOUND=4
+      # modsecurity to web server configuration
+      - PROXY=1
+      - BACKEND=http://php_container:80
+      # modsecurity enable rule engine
+      - MODSEC_RULE_ENGINE=DetectionOnly
+      # mosecurity logs configuration
+      - MODSEC_AUDIT_ENGINE=On
+      - MODSEC_AUDIT_LOG_RELEVANT_STATUS=^(?:5|4(?!04))
+      - MODSEC_AUDIT_LOG_PARTS=ABIJDEFHZ
+      - MODSEC_AUDIT_LOG_TYPE=Serial
+      - MODSEC_AUDIT_LOG_FORMAT=JSON
+      - MODSEC_AUDIT_LOG=/var/log/modsecurity/modsec_audit.log
+      - MODSEC_DEBUG_LOG=/var/log/modsecurity/modsec_debug.log
+      - MODSEC_DEBUG_LOG_LEVEL=9
+    networks:
+      - fyp_network
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.12.0
+    container_name: elasticsearch
+    environment:
+      - discovery.type=single-node
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+      - xpack.security.enabled=false
+    ports:
+      - "9200:9200"
+      - "3011:9300"
+    volumes:
+      - elasticsearch-data:/usr/share/elasticsearch/data
+    networks:
+      - fyp_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9200"]
+      interval: 10s # the time beween each check (curl every 15s)
+      timeout: 5s # the time geven to curl to return output exit code
+      retries: 3 # number of (internal and timeout for command) until the container flaged as unhealthy
+      start_period: 25s
+      #start_interval: 5s # the period of "test" checks during the start_period
+
+  logstash:
+    image: docker.elastic.co/logstash/logstash:8.12.0
+    container_name: logstash
+    volumes:
+      - ./logstash/pipeline:/usr/share/logstash/pipeline
+      - ./modsec-logs:/var/log/modsecurity:ro
+    depends_on:
+      - elasticsearch
+    networks:
+      - fyp_network
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.12.0
+    container_name: kibana
+    ports:
+      - "3012:5601"
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+    depends_on:
+      - elasticsearch
+    networks:
+      - fyp_network
+
+networks:
+  fyp_network:
+    external: true
+
+volumes:
+  elasticsearch-data:

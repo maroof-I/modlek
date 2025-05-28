@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  php:
+    build: .
+    container_name: php_container
+      #ports:
+     #- "3003:80"
+    depends_on:
+      - db
+    networks:
+      - fyp_network
+
+  db:
+    image: mysql
+    container_name: sql_container
+    ports:
+      - "3004:3306"
+    environment:
+      MYSQL_ROOT_USERNAME: "root"
+      MYSQL_ROOT_PASSWORD: "my-password"
+      MYSQL_DATABASE: cms
+    volumes:
+      - db-data:/var/lib/mysql
+      - ./empty_sql_db.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - fyp_network
+
+  adminer:
+    image: adminer
+    ports:
+      - "3005:8080"
+    networks:
+      - fyp_network
+
+
+networks:
+  fyp_network:
+    external: true
+
+volumes:
+  db-data:
