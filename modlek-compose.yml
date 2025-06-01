@@ -7,7 +7,7 @@ services:
     ports:
       - "3010:8080"
     volumes:
-      - ./modsec-config:/etc/modsecurity.d/
+      #- ./modsec-config:/etc/modsecurity.d/
       - ./modsec-logs:/var/log/modsecurity 
         #- ./apache-config/proxy.conf:/etc/apache2/sites-enabled/000-default.conf
     environment:
