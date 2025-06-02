@@ -12,8 +12,8 @@ services:
         #- ./apache-config/proxy.conf:/etc/apache2/sites-enabled/000-default.conf
     environment:
       # CRS configuration
-      - BLOCKING_PARANOIA=1
-      - DETECTION_PARANOIA=1
+      - BLOCKING_PARANOIA=2
+      - DETECTION_PARANOIA=4
       - ANOMALY_INBOUND=5
       - ANOMALY_OUTBOUND=4
       # modsecurity to web server configuration
