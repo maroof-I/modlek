@@ -7,8 +7,9 @@ services:
     ports:
       - "3010:8080"
     volumes:
-      - ./modsec-config/setup.conf:/etc/modsecurity.d/setup.conf:ro
-      - ./modsec-logs:/var/log/modsecurity 
+      #- ./modsec-config/setup.conf:/etc/modsecurity.d/setup.conf:ro
+      - ./modsec-logs:/var/log/modsecurity
+      - - ./file.txt:/tmp/newfile.txt
         #- ./apache-config/proxy.conf:/etc/apache2/sites-enabled/000-default.conf
     environment:
       # CRS configuration
