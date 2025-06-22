@@ -171,8 +171,8 @@ def classify_and_send_to_elastic(df, transaction_ids, original_docs, model_path=
 if __name__ == "__main__":
     # Example usage
     time_utc = datetime.now(timezone.utc).strftime('%Y.%m.%d.%H')
-    index_pattern = 'unclassified_2025.06.19.04'  # Matches unclassified_yyyy.mm.dd.hh
-    
+    index_pattern = f'unclassified_{time_utc}'  # Matches unclassified_yyyy.mm.dd.hh
+
     print("Fetching data from Elasticsearch...")
     df, original_docs = fetch_elasticsearch_data(index_pattern)
     print(f"Fetched {len(df)} records")
