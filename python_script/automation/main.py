@@ -53,7 +53,7 @@ def main():
     # Get current date-based index
     date_hour_utc = datetime.now(timezone.utc).strftime("%Y.%m.%d.%H")
 
-    es_response = analyze_elasticsearch_data(index_name=f"scripting_{date_hour_utc}")
+    es_response = analyze_elasticsearch_data(index_name=f"classified_{date_hour_utc}")
     if not es_response:
         print("Failed to get Elasticsearch data")
         return
