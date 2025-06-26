@@ -187,7 +187,7 @@ def preprocess_unclassified_data(df):
         print(f"Error during preprocessing: {e}")
         raise
 
-def classify_and_send_to_elastic(df, transaction_ids, original_docs, model_path="random_forest_trained.joblib"):
+def classify_and_send_to_elastic(df, transaction_ids, original_docs, model_path="machine_learning/random_forest_trained.joblib"):
     """Classify the preprocessed data and send it back to Elasticsearch."""
     try:
         if df is None or df.empty:
