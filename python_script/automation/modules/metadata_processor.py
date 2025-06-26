@@ -81,40 +81,89 @@ def rules_metadata(response):
         list: List of rule information sorted by trigger count
     """
     try:
-        rules_triggered = [hit["_source"]["rules"] for hit in response["hits"]["hits"]]
-    except KeyError:
-        print("No rules found in the Elasticsearch response.")
-        return []
-    
-    targeted_rules = {}
-    rule_counts = {}
-    
-    for rule in rules_triggered:
-        for rule_data in rule:
-            rule_id = rule_data["rule_id"]
-            if int(rule_data.get("paranoia_level", 0)) >= 3:
-                if rule_id in rule_counts:
-                    rule_counts[rule_id] += 1
-                else:
-                    rule_counts[rule_id] = 1
+        # Debug information
+        print("\nDebugging rules extraction:")
+        if not response or "hits" not in response or "hits" not in response["hits"]:
+            print("Invalid response structure")
+            return []
             
-            if int(rule_data.get("paranoia_level", 0)) >= 3:
-                if rule_id not in targeted_rules:
-                    targeted_rules[rule_id] = {
-                        "rule_id": rule_id,
-                        "paranoia_level": rule_data.get("paranoia_level", ""),
-                        "severity": rule_data.get("severity", ""),
-                        "audit_data": rule_data.get("audit_data", ""),
-                        "count": rule_counts.get(rule_id, 0)
-                    }
-                else:
-                    targeted_rules[rule_id]["count"] = rule_counts[rule_id]
+        hits = response["hits"]["hits"]
+        if not hits:
+            print("No hits found in response")
+            return []
+            
+        # Debug first document structure
+        print(f"\nTotal documents to process: {len(hits)}")
+        if hits:
+            print("\nFirst document structure:")
+            source = hits[0].get("_source", {})
+            print("Available fields:", list(source.keys()))
+            if "rules" in source:
+                print("Rules field type:", type(source["rules"]))
+                print("First document rules:", source["rules"])
+            else:
+                print("'rules' field not found in document")
+        
+        rules_triggered = []
+        for hit in hits:
+            source = hit.get("_source", {})
+            rules = source.get("rules", [])
+            if rules:  # Only append if rules exist
+                rules_triggered.append(rules)
+        
+        if not rules_triggered:
+            print("\nNo rules found in any documents")
+            return []
+            
+        print(f"\nFound rules in {len(rules_triggered)} documents")
+        
+        targeted_rules = {}
+        rule_counts = {}
+        
+        for rules in rules_triggered:
+            for rule_data in rules:
+                try:
+                    rule_id = rule_data["rule_id"]
+                    paranoia_level = int(rule_data.get("paranoia_level", 0))
+                    
+                    if paranoia_level >= 3:
+                        if rule_id in rule_counts:
+                            rule_counts[rule_id] += 1
+                        else:
+                            rule_counts[rule_id] = 1
+                        
+                        if rule_id not in targeted_rules:
+                            targeted_rules[rule_id] = {
+                                "rule_id": rule_id,
+                                "paranoia_level": rule_data.get("paranoia_level", ""),
+                                "severity": rule_data.get("severity", ""),
+                                "audit_data": rule_data.get("audit_data", ""),
+                                "count": rule_counts[rule_id]
+                            }
+                        else:
+                            targeted_rules[rule_id]["count"] = rule_counts[rule_id]
+                except (KeyError, ValueError) as e:
+                    print(f"\nError processing rule: {e}")
+                    print("Problematic rule_data:", rule_data)
+                    continue
 
-    sorted_rules = sorted(
-        targeted_rules.values(),
-        key=lambda x: x["count"],
-        reverse=True
-    )
-    
-    return sorted_rules if sorted_rules else []
+        sorted_rules = sorted(
+            targeted_rules.values(),
+            key=lambda x: x["count"],
+            reverse=True
+        )
+        
+        print(f"\nProcessed rules summary:")
+        print(f"Total unique rules found: {len(targeted_rules)}")
+        print(f"Rules with paranoia level >= 3: {len(sorted_rules)}")
+        if sorted_rules:
+            print("Top rules:", [f"{r['rule_id']}(count: {r['count']})" for r in sorted_rules[:3]])
+        
+        return sorted_rules if sorted_rules else []
+        
+    except Exception as e:
+        print(f"\nError in processing rules metadata: {str(e)}")
+        import traceback
+        print("Traceback:", traceback.format_exc())
+        return []
 
