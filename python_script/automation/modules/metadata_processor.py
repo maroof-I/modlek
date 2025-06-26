@@ -32,6 +32,43 @@ def target_metadata(response):
         print(f"Error in processing Elasticsearch response: {str(e)}")
         return None
 
+def calculate_averages(response):
+    """
+    Calculate average anomaly scores and weights from Elasticsearch response.
+    
+    Args:
+        response (dict): Elasticsearch response
+        
+    Returns:
+        tuple: (avg_anomaly_score, avg_weight) or (0, 0) if no valid data
+    """
+    try:
+        anomaly_scores = []
+        weights = []
+        
+        for hit in response.get("hits", {}).get("hits", []):
+            source = hit.get("_source", {})
+            
+            # Get anomaly score and weight directly from the document
+            anomaly_score = source.get("anomaly_score", 0)
+            weight = source.get("wieght", 0)  # Note: 'wieght' is the actual field name in your data
+            
+            # Only include non-zero values
+            if anomaly_score > 0:
+                anomaly_scores.append(anomaly_score)
+            if weight > 0:
+                weights.append(weight)
+        
+        # Calculate averages
+        avg_anomaly = sum(anomaly_scores) / len(anomaly_scores) if anomaly_scores else 0
+        avg_weight = sum(weights) / len(weights) if weights else 0
+        
+        return round(avg_anomaly, 2), round(avg_weight, 2)
+        
+    except Exception as e:
+        print(f"Error calculating averages: {str(e)}")
+        return 0, 0
+
 def rules_metadata(response):
     """
     Extract metadata from Elasticsearch response for rules.

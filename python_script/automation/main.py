@@ -6,44 +6,10 @@ from datetime import datetime, timezone
 from modules.rule_processor import extract_paranoia_rules
 from modules.file_operations import save_rules_to_file, get_existing_rules
 from modules.elasticsearch_client import analyze_elasticsearch_data
-from modules.metadata_processor import target_metadata, rules_metadata
+from modules.metadata_processor import target_metadata, rules_metadata, calculate_averages
 from modules.visualization import create_target_distribution_plot, create_anomaly_weight_plot
 from modules.email_sender import send_attack_notification
 from modules.config import Config
-
-def calculate_averages(es_response):
-    """Calculate average anomaly scores and weights from ES response.
-    
-    Returns:
-        tuple: (avg_anomaly_score, avg_weight) - Returns (0, 0) if no valid data found
-    """
-    anomaly_scores = []
-    weights = []
-    
-    # Extract scores and weights from valid rules
-    for hit in es_response.get("hits", {}).get("hits", []):
-        source = hit.get("_source", {})
-        rules = source.get("rules", [])
-        
-        for rule in rules:
-            try:
-                anomaly_score = float(rule.get("anomaly_score", 0))
-                weight = float(rule.get("weight", 0))
-                
-                # Only include valid, non-zero scores
-                if anomaly_score > 0 and weight > 0:
-                    anomaly_scores.append(anomaly_score)
-                    weights.append(weight)
-            except (ValueError, TypeError):
-                continue  # Skip invalid values
-    
-    # Calculate averages only if we have valid data
-    if anomaly_scores and weights:
-        avg_anomaly = sum(anomaly_scores) / len(anomaly_scores)
-        avg_weight = sum(weights) / len(weights)
-        return avg_anomaly, avg_weight
-    
-    return 0, 0
 
 def main():
     """Entry point of the application."""
@@ -52,15 +18,15 @@ def main():
     
     # Get current date-based index
     date_hour_utc = datetime.now(timezone.utc).strftime("%Y.%m.%d.%H")
-
-    es_response = analyze_elasticsearch_data(index_name=f"classified_{date_hour_utc}")
-    if not es_response:
-        print("Failed to get Elasticsearch data")
-        return
+    es_response = analyze_elasticsearch_data(index_name=f"scripting_{date_hour_utc}")
     
     # create/update rules.conf file
     extracted_rules = extract_paranoia_rules(config.security_rules_file)
     # save_rules_to_file(extracted_rules, "rules.conf")
+    
+    if not es_response:
+        print("Failed to get Elasticsearch data")
+        return
         
     # Analyze metadata
     target_results = target_metadata(es_response)
@@ -102,19 +68,15 @@ def main():
                 break
         
         # Send email notification
-        try:
-            send_attack_notification(
-                config,
-                config.recipient_email,
-                target_results,
-                added_rule_info,
-                target_dist_img,
-                anomaly_weight_img
-            )
-        except Exception as e:
-            print(f"Error sending email notification: {e}")
-            return 
-
+        send_attack_notification(
+            config,
+            config.recipient_email,
+            target_results,
+            added_rule_info,
+            target_dist_img,
+            anomaly_weight_img
+        )
+        
         if not new_rule_added:
             print("No new eligible rules found to add.")
 
