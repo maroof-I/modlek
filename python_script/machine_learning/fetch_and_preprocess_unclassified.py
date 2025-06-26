@@ -16,11 +16,22 @@ MAX_RETRIES = 3
 def fetch_elasticsearch_data(index_pattern, size=10000):
     """Fetch all documents from the given index pattern."""
     try:
-        es = Elasticsearch(ES_HOST, timeout=ES_TIMEOUT, max_retries=MAX_RETRIES, retry_on_timeout=True)
+        # Update client configuration to use request_timeout instead of deprecated timeout
+        es = Elasticsearch(
+            ES_HOST,
+            request_timeout=ES_TIMEOUT,
+            max_retries=MAX_RETRIES,
+            retry_on_timeout=True
+        )
         
-        # Check if index exists
-        if not es.indices.exists(index=index_pattern):
-            raise NotFoundError(404, f"Index pattern {index_pattern} not found")
+        # Check if index exists using the correct API call
+        try:
+            if not es.indices.exists(index=index_pattern):
+                print(f"Warning: Index pattern {index_pattern} not found")
+                return None, None
+        except Exception as e:
+            print(f"Warning: Could not check index existence: {e}")
+            # Continue anyway as the scan operation will fail if index doesn't exist
         
         results = []
         original_docs = []
@@ -31,19 +42,23 @@ def fetch_elasticsearch_data(index_pattern, size=10000):
             }
         }
         
-        for doc in scan(es, index=index_pattern, query=query, size=size, request_timeout=ES_TIMEOUT):
-            source = doc.get('_source', {})
-            original_docs.append(source)
-            
-            processed_doc = {
-                'http_method': source.get('http_method', '').upper(),
-                'request_path': source.get('request_path', '/'),
-                'request_body': source.get('request_body', ''),
-                'user_agent': source.get('user_agent', 'Unknown'),
-                'content_length': source.get('content_length', 0),
-                'transaction_id': source.get('transaction_id', '')
-            }
-            results.append(processed_doc)
+        try:
+            for doc in scan(es, index=index_pattern, query=query, size=size, request_timeout=ES_TIMEOUT):
+                source = doc.get('_source', {})
+                original_docs.append(source)
+                
+                processed_doc = {
+                    'http_method': source.get('http_method', '').upper(),
+                    'request_path': source.get('request_path', '/'),
+                    'request_body': source.get('request_body', ''),
+                    'user_agent': source.get('user_agent', 'Unknown'),
+                    'content_length': source.get('content_length', 0),
+                    'transaction_id': source.get('transaction_id', '')
+                }
+                results.append(processed_doc)
+        except Exception as e:
+            print(f"Error during document scanning: {e}")
+            raise
         
         if not results:
             print(f"Warning: No documents found in index {index_pattern}")
@@ -222,7 +237,13 @@ def classify_and_send_to_elastic(df, transaction_ids, original_docs, model_path=
             actions.append(doc)
         
         # Send to Elasticsearch with retry logic
-        es = Elasticsearch(ES_HOST, timeout=ES_TIMEOUT, max_retries=MAX_RETRIES, retry_on_timeout=True)
+        es = Elasticsearch(
+            ES_HOST,
+            request_timeout=ES_TIMEOUT,
+            max_retries=MAX_RETRIES,
+            retry_on_timeout=True
+        )
+        
         try:
             success, failed = bulk(es, actions, request_timeout=ES_TIMEOUT)
         except Exception as e:
