@@ -8,7 +8,10 @@ class Config:
     def __init__(self):
         # Elasticsearch settings
         self.es_host = 'http://192.168.0.109:9200'
-        self.es_index = 'classified'
+        self.es_request_timeout = 30  # seconds
+        self.es_max_retries = 3
+        self.es_retry_on_timeout = True
+        self.es_scroll_size = 1000  # documents per scroll
         
         # File paths
         self.custom_rules_file = "custom_rules.conf"
