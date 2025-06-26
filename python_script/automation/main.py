@@ -1,5 +1,6 @@
 import re
 import json
+import os
 from elasticsearch import Elasticsearch
 from collections import Counter
 from datetime import datetime, timezone
@@ -22,7 +23,8 @@ def main():
     
     # create/update rules.conf file
     extracted_rules = extract_paranoia_rules(config.security_rules_file)
-    # save_rules_to_file(extracted_rules, "rules.conf")
+    if not os.path.exists("rules.conf"):
+        save_rules_to_file(extracted_rules, "rules.conf")
     
     if not es_response:
         print("Failed to get Elasticsearch data")
