@@ -17,17 +17,51 @@ def analyze_elasticsearch_data(es_host='http://192.168.0.109:9200', index_name='
     try:
         es = Elasticsearch([es_host])
         
+        # First, get the total count of documents
+        count_query = {
+            "query": {"match_all": {}}
+        }
+        total_count = es.count(index=index_name, body=count_query)["count"]
+        print(f"Total documents in index: {total_count}")
+        
         # Use scan helper to handle large datasets
         hits = []
-        for doc in scan(
-            es,
-            index=index_name,
-            query={"query": {"match_all": {}}},
-            request_timeout=request_timeout,
-            preserve_order=True  # Important for consistent results
-        ):
+        scroll_size = 10000  # Increased batch size
+        
+        # Configure scan with larger size and scroll timeout
+        scan_kwargs = {
+            "index": index_name,
+            "query": {"query": {"match_all": {}}},
+            "request_timeout": request_timeout,
+            "scroll": "10m",  # Longer scroll time
+            "size": scroll_size,
+            "preserve_order": True
+        }
+        
+        print("Starting document retrieval...")
+        for i, doc in enumerate(scan(es, **scan_kwargs)):
             hits.append(doc)
+            if (i + 1) % scroll_size == 0:
+                print(f"Retrieved {i + 1} documents...")
+        
+        # Verify we got all documents
+        if len(hits) < total_count:
+            print(f"Warning: Retrieved only {len(hits)} documents out of {total_count}")
+            # Try one more time with different settings if we missed documents
+            remaining = total_count - len(hits)
+            print(f"Attempting to retrieve remaining {remaining} documents...")
             
+            # Use search after for remaining documents
+            last_sort = hits[-1]["sort"] if hits and "sort" in hits[-1] else None
+            if last_sort:
+                search_after_query = {
+                    "query": {"match_all": {}},
+                    "search_after": last_sort,
+                    "size": remaining
+                }
+                additional_docs = es.search(index=index_name, body=search_after_query)
+                hits.extend(additional_docs["hits"]["hits"])
+        
         # Format response to match expected structure
         response = {
             "hits": {
@@ -39,7 +73,10 @@ def analyze_elasticsearch_data(es_host='http://192.168.0.109:9200', index_name='
             }
         }
         
-        print(f"Retrieved {len(hits)} documents from Elasticsearch")
+        print(f"Successfully retrieved {len(hits)} documents from Elasticsearch")
+        if len(hits) != total_count:
+            print(f"Warning: Document count mismatch. Expected {total_count}, got {len(hits)}")
+        
         return response
         
     except Exception as e:
