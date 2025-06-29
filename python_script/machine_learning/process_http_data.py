@@ -8,7 +8,16 @@ from modules.data_preprocessor import (
     standardize_column_names
 )
 
-def process_dataset(input_file, output_file, normal_samples=6000, malicious_samples=1500):
+# what has been done:
+# 1. drop unnecessary columns
+# 2. standardize column names
+# 3. one hot encode http method
+# 4. normalize content length
+# 5. feature engineering and selection using user agent
+# 6. create tf-idf vectors for request body and path
+
+
+def process_dataset(input_file, output_file, normal_samples=10000, malicious_samples=2500):
     """Process HTTP dataset with all preprocessing steps."""
     print("\n" + "="*50)
     print("PROCESSING PIPELINE START")
@@ -153,7 +162,7 @@ def process_dataset(input_file, output_file, normal_samples=6000, malicious_samp
 
 if __name__ == "__main__":
     # Example usage
-    input_file = "csic_database.csv"
-    output_file = "large_sample.csv"
+    input_file = "machine_learning/csic_database.csv"
+    output_file = "machine_learning/large_sample.csv"
     
     process_dataset(input_file, output_file)

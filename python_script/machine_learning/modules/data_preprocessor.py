@@ -29,10 +29,12 @@ def preprocess_http_data(df):
     df.loc[:, "content_length"] = df["content_length"].apply(extract_content_length)
     
     # Normalize content length
+
     minmax_scaler = MinMaxScaler(feature_range=(0, 1))
     df.loc[:, "content_length_normalized"] = minmax_scaler.fit_transform(
         df[["content_length"]].replace(0, np.nan).fillna(df["content_length"].median())
     )
+    df = df.drop(columns=["content_length"])
     
     return df
 

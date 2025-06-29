@@ -1,6 +1,7 @@
 import re
 import json
 import os
+import logging
 from elasticsearch import Elasticsearch
 from collections import Counter
 from datetime import datetime, timezone
@@ -10,10 +11,22 @@ from modules.elasticsearch_client import analyze_elasticsearch_data
 from modules.metadata_processor import target_metadata, rules_metadata, calculate_averages
 from modules.visualization import create_target_distribution_plot, create_anomaly_weight_plot
 from modules.email_sender import send_attack_notification
+from modules.modsec_rule_updater import ModSecRuleUpdater
 from modules.config import Config
 
 def main():
     """Entry point of the application."""
+    # Initialize logging
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+        handlers=[
+            logging.FileHandler('automation.log'),
+            logging.StreamHandler()
+        ]
+    )
+    logger = logging.getLogger(__name__)
+    
     # Initialize configuration
     config = Config()
     
@@ -27,13 +40,13 @@ def main():
         save_rules_to_file(extracted_rules, "rules.conf")
     
     if not es_response:
-        print("Failed to get Elasticsearch data")
+        logger.error("Failed to get Elasticsearch data")
         return
         
     # Analyze metadata
     target_results = target_metadata(es_response)
     if not target_results:
-        print("Failed to analyze target metadata")
+        logger.error("Failed to analyze target metadata")
         return
     
     # Process if attack percentage is higher than threshold
@@ -62,12 +75,19 @@ def main():
         for rule_info in sorted_rules:
             matched_id = rule_info["rule_id"]
             if matched_id not in existing_rules and matched_id in extracted_rules:
-                print(f"Adding new rule ID: {matched_id} (triggered {rule_info['count']} times)")
+                logger.info(f"Adding new rule ID: {matched_id} (triggered {rule_info['count']} times)")
                 with open(config.custom_rules_file, "a") as output_file:
                     output_file.write(extracted_rules[matched_id] + "\n\n")
                 new_rule_added = True
                 added_rule_info = rule_info
                 break
+        
+        # Update ModSecurity rules if new rules were added
+        if new_rule_added:
+            logger.info("New rules added, updating ModSecurity configuration...")
+            modsec_updater = ModSecRuleUpdater(custom_rules_path=config.custom_rules_file)
+            if not modsec_updater.update_rules():
+                logger.error("Failed to update ModSecurity rules")
         
         # Send email notification
         send_attack_notification(
@@ -80,7 +100,7 @@ def main():
         )
         
         if not new_rule_added:
-            print("No new eligible rules found to add.")
+            logger.info("No new eligible rules found to add.")
 
 if __name__ == "__main__":
     main()

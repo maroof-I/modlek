@@ -6,7 +6,7 @@ from sklearn.metrics import accuracy_score, classification_report, confusion_mat
 import joblib
 
 # Load the dataset
-input_file = "large_sample.csv"
+input_file = "machine_learning/large_sample.csv"
 df = pd.read_csv(input_file)
 
 # Drop non-feature columns if present
@@ -47,5 +47,5 @@ print("\nConfusion Matrix:")
 print(cm)
 
 # Save the model
-joblib.dump(clf, "random_forest_trained.joblib")
+joblib.dump(clf, "machine_learning/random_forest_trained.joblib")
 print("\nModel saved as random_forest_trained.joblib")
