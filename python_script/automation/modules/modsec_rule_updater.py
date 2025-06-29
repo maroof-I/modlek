@@ -38,7 +38,7 @@ class ModSecRuleUpdater:
     def add_rule_exclusions(self, rule_ids):
         """Add rule exclusions to the exclusions file."""
         try:
-            exclusions_file = os.path.join(os.path.dirname(self.custom_rules_path), "modsec-config/rule-exclusions.conf")
+            exclusions_file = os.path.join(os.path.dirname(self.custom_rules_path), "../modsec-config/rule-exclusions.conf")
             
             # Read current content
             with open(exclusions_file, 'r') as f:
