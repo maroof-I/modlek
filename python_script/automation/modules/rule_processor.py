@@ -83,6 +83,8 @@ def extract_paranoia_rules(input_text):
                     custom_id = generate_custom_rule_id(original_id)
                     # Replace the original ID with our custom ID
                     adjusted_rule = re.sub(r'id:\d+', f'id:{custom_id}', rule)
+                    # Change paranoia level tag to custom
+                    adjusted_rule = re.sub(r"tag:'paranoia-level/[34]'", "tag:'paranoia-level/custom'", adjusted_rule)
                     adjusted_rule = adjust_anomaly_score(adjusted_rule)
                     # Store under the custom ID
                     result[custom_id] = adjusted_rule
