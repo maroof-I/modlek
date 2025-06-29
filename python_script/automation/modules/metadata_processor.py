@@ -119,7 +119,7 @@ def rules_metadata(response):
         
         # Initialize dictionaries to store rule information
         rule_info_dict = {}  # Store rule information
-        rule_counts = Counter()  # Use Counter for accurate counting
+        rule_counts = Counter()
         
         # First pass: Count rule occurrences and store rule information
         for rules in rules_triggered:
@@ -130,7 +130,7 @@ def rules_metadata(response):
                     
                     if paranoia_level >= 3:
                         # Count the rule occurrence
-                            rule_counts[rule_id] += 1
+                        rule_counts[rule_id] += 1
                         
                         # Store or update rule information
                         if rule_id not in rule_info_dict:
@@ -146,7 +146,7 @@ def rules_metadata(response):
                     print(f"\nError processing rule: {e}")
                     print("Problematic rule_data:", rule_data)
                     continue
-
+        
         # Second pass: Create final list with accurate counts
         sorted_rules = []
         for rule_id, count in rule_counts.most_common():
