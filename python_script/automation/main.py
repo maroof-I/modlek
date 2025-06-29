@@ -72,21 +72,14 @@ def main():
         new_rule_added = False
         added_rule_info = None
         
-        # Check for existing rule IDs in custom_rules.conf
-        try:
-            with open(config.custom_rules_file, "r") as f:
-                current_content = f.read()
-                # Extract existing rule IDs using regex
-                existing_rule_ids = set(re.findall(r'id:(\d+)', current_content))
-        except FileNotFoundError:
-            existing_rule_ids = set()
-            current_content = ""
+        # Initialize ModSecRuleUpdater first
+        modsec_updater = ModSecRuleUpdater(custom_rules_path=config.custom_rules_file)
         
         for rule_info in sorted_rules:
             matched_id = rule_info["rule_id"]
             if matched_id not in existing_rules and matched_id in extracted_rules:
-                # Check if rule ID already exists in the file
-                if matched_id not in existing_rule_ids:
+                # Use ModSecRuleUpdater's rule_exists method to check for duplicates
+                if not modsec_updater.rule_exists(matched_id):
                     logger.info(f"Adding new rule ID: {matched_id} (triggered {rule_info['count']} times)")
                     with open(config.custom_rules_file, "a") as output_file:
                         output_file.write(extracted_rules[matched_id] + "\n\n")
@@ -99,7 +92,6 @@ def main():
         # Update ModSecurity rules if new rules were added
         if new_rule_added:
             logger.info("New rules added, updating ModSecurity configuration...")
-            modsec_updater = ModSecRuleUpdater(custom_rules_path=config.custom_rules_file)
             if not modsec_updater.update_rules():
                 logger.error("Failed to update ModSecurity rules")
         

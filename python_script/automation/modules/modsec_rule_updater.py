@@ -90,6 +90,16 @@ class ModSecRuleUpdater:
             self.logger.error(f"Failed to reload Apache configuration: {str(e)}")
             return False
 
+    def rule_exists(self, rule_id):
+        """Check if a rule ID already exists in the custom rules file."""
+        try:
+            with open(self.custom_rules_path, 'r') as f:
+                content = f.read()
+            return f"id:{rule_id}" in content
+        except Exception as e:
+            self.logger.error(f"Error checking for existing rule: {str(e)}")
+            return False
+
     def update_rules(self):
         """Main method to update ModSecurity rules."""
         if not self.check_container_running():
@@ -118,8 +128,20 @@ class ModSecRuleUpdater:
                 )
                 container_rule_ids = self.extract_rule_ids(result.stdout)
                 self.logger.info(f"Rule IDs in container: {container_rule_ids}")
+
+                # Check for duplicates
+                for rule_id in container_rule_ids:
+                    if container_rule_ids.count(rule_id) > 1:
+                        self.logger.error(f"Found duplicate rule ID {rule_id} in container file")
+                        return False
             except Exception as e:
                 self.logger.error(f"Failed to read container file: {str(e)}")
+
+            # Check for duplicates in local file
+            for rule_id in rule_ids:
+                if rule_ids.count(rule_id) > 1:
+                    self.logger.error(f"Found duplicate rule ID {rule_id} in local file")
+                    return False
 
             if not self.add_rule_exclusions(rule_ids):
                 return False
