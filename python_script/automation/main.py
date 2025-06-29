@@ -77,10 +77,6 @@ def main():
             avg_weight
         )
         
-        # Find and add new rules
-        new_rule_added = False
-        added_rules_info = []  # Track all added rules
-        
         # Initialize ModSecRuleUpdater first
         modsec_updater = ModSecRuleUpdater(custom_rules_path=config.custom_rules_file)
         
@@ -92,6 +88,10 @@ def main():
         
         logger.info("\nStarting rule processing:")
         logger.info("=" * 50)
+        
+        # Process only one rule - the most triggered one that's not already added
+        new_rule_added = False
+        added_rule_info = None
         
         for rule_info in sorted_rules:
             original_id = rule_info["rule_id"]
@@ -118,39 +118,35 @@ def main():
                     # Add a marker comment for better organization
                     output_file.write(f"\n# Rule {custom_id} (Original: {original_id})\n")
                     output_file.write(rule_content + "\n")
+                    output_file.write('\nSecMarker "END-REQUEST-942-APPLICATION-ATTACK-SQLI"\n')
                 
                 new_rule_added = True
-                added_rules_info.append(rule_info)
+                added_rule_info = rule_info
                 logger.info(f"✓ Successfully added rule {custom_id}")
+                break  # Stop after adding one rule
             else:
                 logger.info("✗ Rule not added - Conditions not met")
         
         logger.info("\nRule processing summary:")
         logger.info("=" * 50)
         logger.info(f"Total rules processed: {len(sorted_rules)}")
-        logger.info(f"Rules added: {len(added_rules_info)}")
-        if added_rules_info:
-            logger.info("Added rules:")
-            for rule in added_rules_info:
-                logger.info(f"- {rule['rule_id']} (Custom: {rule['custom_id']})")
+        logger.info(f"Rules added: {1 if new_rule_added else 0}")
+        if added_rule_info:
+            logger.info("Added rule:")
+            logger.info(f"- {added_rule_info['rule_id']} (Custom: {added_rule_info['custom_id']})")
         
-        # Add end marker if rules were added
+        # Update ModSecurity rules if a new rule was added
         if new_rule_added:
-            with open(config.custom_rules_file, "a") as output_file:
-                output_file.write('\nSecMarker "END-REQUEST-942-APPLICATION-ATTACK-SQLI"\n')
-        
-        # Update ModSecurity rules if new rules were added
-        if new_rule_added:
-            logger.info(f"Added {len(added_rules_info)} new rules, updating ModSecurity configuration...")
+            logger.info("Added 1 new rule, updating ModSecurity configuration...")
             if not modsec_updater.update_rules():
                 logger.error("Failed to update ModSecurity rules")
         
-        # Send email notification with the last added rule info
+        # Send email notification with the added rule info
         send_attack_notification(
             config,
             config.recipient_email,
             target_results,
-            added_rules_info[-1] if added_rules_info else None,
+            added_rule_info,
             target_dist_img,
             anomaly_weight_img
         )
