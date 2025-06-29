@@ -1,4 +1,5 @@
 import re
+import os
 
 def save_rules_to_file(rules, filename):
     """Save extracted rules to a file."""
@@ -19,8 +20,15 @@ def load_rules_from_file(filename):
                     rules[rule_id] = rule.strip()
     return rules
 
-def get_existing_rules(filename="custom_rules.conf"):
+def get_existing_rules(filename=None):
     """Read existing rules from custom_rules.conf and return their IDs."""
+    if filename is None:
+        # Use absolute path relative to this script's location
+        filename = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
+            "custom_rules.conf"
+        )
+    
     existing_rule_ids = set()
     try:
         with open(filename, "r") as file:
