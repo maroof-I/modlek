@@ -35,7 +35,11 @@ def main():
     es_response = analyze_elasticsearch_data(index_name=f"classified_{date_hour_utc}")
     
     # create/update rules.conf file
+    logger.info("Extracting rules from security rules file...")
     extracted_rules = extract_paranoia_rules(config.security_rules_file)
+    logger.info(f"Found {len(extracted_rules)} rules in security rules file")
+    logger.debug(f"Extracted rule IDs: {list(extracted_rules.keys())}")
+    
     if not os.path.exists("rules.conf"):
         save_rules_to_file(extracted_rules, "rules.conf")
     
@@ -52,8 +56,13 @@ def main():
     # Process if attack percentage is higher than threshold
     if target_results["attack_percentage"] > config.attack_threshold:
         # Get existing rules and analyze new ones
+        logger.info("Checking existing rules...")
         existing_rules = get_existing_rules()
+        logger.info(f"Found {len(existing_rules)} existing rules")
+        logger.debug(f"Existing rule IDs: {list(existing_rules)}")
+        
         sorted_rules = rules_metadata(es_response)
+        logger.info(f"Found {len(sorted_rules)} rules from Elasticsearch data")
                 
         # Create visualizations
         target_dist_img = create_target_distribution_plot(
@@ -81,13 +90,27 @@ def main():
                 f.write("")  # Create empty file
             logger.info(f"Created new custom rules file: {config.custom_rules_file}")
         
+        logger.info("\nStarting rule processing:")
+        logger.info("=" * 50)
+        
         for rule_info in sorted_rules:
             original_id = rule_info["rule_id"]
             custom_id = rule_info["custom_id"]
             
+            logger.info(f"\nProcessing rule: {original_id}")
+            logger.info(f"Custom ID: {custom_id}")
+            logger.info(f"Paranoia Level: {rule_info.get('paranoia_level')}")
+            logger.info(f"Severity: {rule_info.get('severity')}")
+            logger.info(f"Trigger Count: {rule_info.get('count')}")
+            
+            # Debug checks
+            logger.info("Checking conditions:")
+            logger.info(f"1. Rule in extracted_rules: {original_id in extracted_rules}")
+            logger.info(f"2. Custom ID not in existing_rules: {custom_id not in existing_rules}")
+            
             # Check if the rule exists in extracted rules and not in existing rules
             if original_id in extracted_rules and custom_id not in existing_rules:
-                logger.info(f"Adding new rule ID: {custom_id} (triggered {rule_info['count']} times)")
+                logger.info(f"✓ Adding new rule ID: {custom_id} (triggered {rule_info['count']} times)")
                 
                 # Add the rule to custom_rules.conf
                 with open(config.custom_rules_file, "a") as output_file:
@@ -98,7 +121,18 @@ def main():
                 
                 new_rule_added = True
                 added_rules_info.append(rule_info)
-                logger.info(f"Successfully added rule {custom_id}")
+                logger.info(f"✓ Successfully added rule {custom_id}")
+            else:
+                logger.info("✗ Rule not added - Conditions not met")
+        
+        logger.info("\nRule processing summary:")
+        logger.info("=" * 50)
+        logger.info(f"Total rules processed: {len(sorted_rules)}")
+        logger.info(f"Rules added: {len(added_rules_info)}")
+        if added_rules_info:
+            logger.info("Added rules:")
+            for rule in added_rules_info:
+                logger.info(f"- {rule['rule_id']} (Custom: {rule['custom_id']})")
         
         # Add end marker if rules were added
         if new_rule_added:
