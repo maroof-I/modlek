@@ -72,22 +72,24 @@ def main():
         new_rule_added = False
         added_rule_info = None
         
-        # Load current content of custom_rules.conf to check for duplicates
+        # Check for existing rule IDs in custom_rules.conf
         try:
             with open(config.custom_rules_file, "r") as f:
                 current_content = f.read()
+                # Extract existing rule IDs using regex
+                existing_rule_ids = set(re.findall(r'id:(\d+)', current_content))
         except FileNotFoundError:
+            existing_rule_ids = set()
             current_content = ""
         
         for rule_info in sorted_rules:
             matched_id = rule_info["rule_id"]
             if matched_id not in existing_rules and matched_id in extracted_rules:
-                # Check if rule already exists in the file
-                rule_content = extracted_rules[matched_id]
-                if rule_content not in current_content:
+                # Check if rule ID already exists in the file
+                if matched_id not in existing_rule_ids:
                     logger.info(f"Adding new rule ID: {matched_id} (triggered {rule_info['count']} times)")
                     with open(config.custom_rules_file, "a") as output_file:
-                        output_file.write(rule_content + "\n\n")
+                        output_file.write(extracted_rules[matched_id] + "\n\n")
                     new_rule_added = True
                     added_rule_info = rule_info
                 else:
