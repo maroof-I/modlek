@@ -9,7 +9,9 @@ services:
     volumes:
       - ./modsec-config/:/etc/modsecurity.d/
       - ./modsec-logs:/var/log/modsecurity
-      - ./python_script/custom_rules.conf:/etc/modsecurity.d/custom-rules/custom_rules.conf
+      - type: bind
+        source: ./python_script/custom_rules.conf
+        target: /etc/modsecurity.d/custom_rules.conf
       #- ./apache-config/proxy.conf:/etc/apache2/sites-enabled/000-default.conf
     environment:
       # CRS configuration
