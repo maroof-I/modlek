@@ -45,33 +45,33 @@ def extract_paranoia_rules(input_text):
     Store both original and custom IDs for each rule.
     """
     try:
-    with open(input_text, 'r') as file:
-        content = file.read()
-    
-    lines = content.splitlines()
-    rules = []
-    buffer = []
-    
-    for line in lines:
-        line = line.strip()
-        if line.startswith("#") or not line:
-            continue
+        with open(input_text, 'r') as file:
+            content = file.read()
+        
+        lines = content.splitlines()
+        rules = []
+        buffer = []
+        
+        for line in lines:
+            line = line.strip()
+            if line.startswith("#") or not line:
+                continue
 
-        if line.startswith("SecRule"):
-            if buffer:
-                rules.append("\n".join(buffer))
-                buffer = []
-        if line.startswith("SecRule") or buffer:
-            buffer.append(line)
-    if buffer:
-        rules.append("\n".join(buffer))
+            if line.startswith("SecRule"):
+                if buffer:
+                    rules.append("\n".join(buffer))
+                    buffer = []
+            if line.startswith("SecRule") or buffer:
+                buffer.append(line)
+        if buffer:
+            rules.append("\n".join(buffer))
 
-    result = {}
+        result = {}
 
-    for rule in rules:
-        if re.search(r"tag:'paranoia-level/[34]'", rule):
-            id_match = re.search(r"id\s*:\s*(\d+)", rule)
-            if id_match:
+        for rule in rules:
+            if re.search(r"tag:'paranoia-level/[34]'", rule):
+                id_match = re.search(r"id\s*:\s*(\d+)", rule)
+                if id_match:
                     original_id = id_match.group(1)
                     custom_id = generate_custom_rule_id(original_id)
                     # Replace the original ID with our custom ID
@@ -80,8 +80,8 @@ def extract_paranoia_rules(input_text):
                     # Store rule under both original and custom IDs
                     result[original_id] = adjusted_rule
                     result[custom_id] = adjusted_rule
-                
-    return result
+                    
+        return result
     except Exception as e:
         print(f"Error extracting rules: {str(e)}")
         return {}
