@@ -40,24 +40,20 @@ class ModSecRuleUpdater:
         try:
             exclusions_file = os.path.join(os.path.dirname(self.custom_rules_path), "../modsec-config/rule-exclusions.conf")
             
-            # Read current content
+            # Read current content to check for existing exclusions
             with open(exclusions_file, 'r') as f:
                 content = f.read()
             
-            # Add new exclusions before the marker
+            # Add new exclusions if they don't exist
             new_exclusions = []
             for rule_id in rule_ids:
                 if f"SecRuleRemoveById {rule_id}" not in content:
                     new_exclusions.append(f"SecRuleRemoveById {rule_id}")
             
             if new_exclusions:
-                # Replace marker with new exclusions and marker
-                marker = "# EXCLUSION_MARKER"
-                new_content = content.replace(marker, "\n".join(new_exclusions) + f"\n{marker}")
-                
-                # Write back to file
-                with open(exclusions_file, 'w') as f:
-                    f.write(new_content)
+                # Append new exclusions to the file
+                with open(exclusions_file, 'a') as f:
+                    f.write("\n" + "\n".join(new_exclusions) + "\n")
                 
                 self.logger.info(f"Added {len(new_exclusions)} rule exclusions")
                 return True
