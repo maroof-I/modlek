@@ -79,8 +79,10 @@ class ModSecRuleUpdater:
             # Add new exclusions if they don't exist
             new_exclusions = []
             for rule_id in rule_ids:
-                if f"SecRuleRemoveById {rule_id}" not in content:
-                    new_exclusions.append(f"SecRuleRemoveById {rule_id}")
+                # If it's a custom rule ID (starts with 999), get the original rule ID
+                original_rule_id = rule_id[3:] if rule_id.startswith('999') else rule_id
+                if f"SecRuleRemoveById {original_rule_id}" not in content:
+                    new_exclusions.append(f"SecRuleRemoveById {original_rule_id}")
             
             if new_exclusions:
                 # Append new exclusions to the file
