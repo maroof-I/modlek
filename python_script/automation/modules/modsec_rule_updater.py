@@ -97,12 +97,30 @@ class ModSecRuleUpdater:
             return False
 
         try:
+            # Debug: Print file path
+            self.logger.info(f"Reading custom rules from: {self.custom_rules_path}")
+            
             # Read the custom rules file to extract rule IDs
             with open(self.custom_rules_path, 'r') as f:
                 rule_content = f.read()
             
-            # Extract rule IDs and add exclusions
+            # Debug: Print found rule IDs
             rule_ids = self.extract_rule_ids(rule_content)
+            self.logger.info(f"Found rule IDs in custom_rules.conf: {rule_ids}")
+            
+            # Debug: Check container file
+            try:
+                result = subprocess.run(
+                    ["docker", "exec", self.container_name, "cat", "/etc/modsecurity.d/custom_rules.conf"],
+                    capture_output=True,
+                    text=True,
+                    check=True
+                )
+                container_rule_ids = self.extract_rule_ids(result.stdout)
+                self.logger.info(f"Rule IDs in container: {container_rule_ids}")
+            except Exception as e:
+                self.logger.error(f"Failed to read container file: {str(e)}")
+
             if not self.add_rule_exclusions(rule_ids):
                 return False
 
