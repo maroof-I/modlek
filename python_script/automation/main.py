@@ -76,16 +76,16 @@ def main():
         modsec_updater = ModSecRuleUpdater(custom_rules_path=config.custom_rules_file)
         
         for rule_info in sorted_rules:
-            matched_id = rule_info["rule_id"]
-            custom_id = f"999{matched_id}"  # Generate the custom ID
+            original_id = rule_info["rule_id"]
+            custom_id = rule_info["custom_id"]  # Now getting custom_id from rule_info
             
             # Check if either the original ID or custom ID exists in extracted rules
-            if matched_id in extracted_rules:
+            if original_id in extracted_rules:
                 # Check if neither the original nor custom ID exists in current rules
                 if custom_id not in existing_rules:
                     logger.info(f"Adding new rule ID: {custom_id} (triggered {rule_info['count']} times)")
                     with open(config.custom_rules_file, "a") as output_file:
-                        output_file.write(extracted_rules[matched_id] + "\n\n")
+                        output_file.write(extracted_rules[original_id] + "\n\n")
                     new_rule_added = True
                     added_rule_info = rule_info
                 else:

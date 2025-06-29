@@ -127,34 +127,45 @@ def rules_metadata(response):
                     paranoia_level = int(rule_data.get("paranoia_level", 0))
                     
                     if paranoia_level >= 3:
+                        # Generate both original and custom rule IDs
+                        custom_id = f"999{rule_id}"
+                        
+                        # Count for both IDs
                         if rule_id in rule_counts:
                             rule_counts[rule_id] += 1
                         else:
                             rule_counts[rule_id] = 1
-                        
+                            
+                        # Store rule info with both IDs
                         if rule_id not in targeted_rules:
-                            targeted_rules[rule_id] = {
+                            rule_info = {
                                 "rule_id": rule_id,
+                                "custom_id": custom_id,
                                 "paranoia_level": rule_data.get("paranoia_level", ""),
                                 "severity": rule_data.get("severity", ""),
                                 "audit_data": rule_data.get("audit_data", ""),
                                 "count": rule_counts[rule_id]
                             }
+                            targeted_rules[rule_id] = rule_info
+                            targeted_rules[custom_id] = rule_info  # Store same info for custom ID
                         else:
                             targeted_rules[rule_id]["count"] = rule_counts[rule_id]
+                            targeted_rules[custom_id]["count"] = rule_counts[rule_id]
+                            
                 except (KeyError, ValueError) as e:
                     print(f"\nError processing rule: {e}")
                     print("Problematic rule_data:", rule_data)
                     continue
 
+        # Sort rules by count
         sorted_rules = sorted(
-            targeted_rules.values(),
+            [rule for rule in targeted_rules.values() if not rule["rule_id"].startswith("999")],  # Avoid duplicates
             key=lambda x: x["count"],
             reverse=True
         )
         
         print(f"\nProcessed rules summary:")
-        print(f"Total unique rules found: {len(targeted_rules)}")
+        print(f"Total unique rules found: {len(sorted_rules)}")
         print(f"Rules with paranoia level >= 3: {len(sorted_rules)}")
         if sorted_rules:
             print("Top rules:", [f"{r['rule_id']}(count: {r['count']})" for r in sorted_rules[:3]])
