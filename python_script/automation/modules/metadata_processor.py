@@ -69,6 +69,13 @@ def calculate_averages(response):
         print(f"Error calculating averages: {str(e)}")
         return 0, 0
 
+def generate_custom_rule_id(original_id):
+    """Generate a custom rule ID that won't conflict with CRS rules."""
+    # If the ID already starts with 999, it's already a custom rule
+    if str(original_id).startswith('999'):
+        return str(original_id)
+    return f"999{original_id}"
+
 def rules_metadata(response):
     """
     Extract metadata from Elasticsearch response for rules.
@@ -134,9 +141,10 @@ def rules_metadata(response):
                         
                         # Store or update rule information
                         if rule_id not in rule_info_dict:
+                            custom_id = generate_custom_rule_id(rule_id)
                             rule_info_dict[rule_id] = {
                                 "rule_id": rule_id,
-                                "custom_id": f"999{rule_id}",
+                                "custom_id": custom_id,
                                 "paranoia_level": rule_data.get("paranoia_level", ""),
                                 "severity": rule_data.get("severity", ""),
                                 "audit_data": rule_data.get("audit_data", "")

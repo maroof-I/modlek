@@ -29,42 +29,29 @@ class ModSecRuleUpdater:
     def extract_rule_ids(self, rule_content):
         """
         Extract rule IDs from rule content using regex.
-        Returns both original and custom (999-prefixed) rule IDs.
+        Returns only the custom (999-prefixed) rule IDs.
         """
         rule_ids = set()
         pattern = r'id:(\d+)'
         matches = re.finditer(pattern, rule_content)
         for match in matches:
             rule_id = match.group(1)
-            rule_ids.add(rule_id)
-            # If it's an original rule ID (not starting with 999), add its custom version too
-            if not rule_id.startswith('999'):
-                rule_ids.add(f"999{rule_id}")
+            # Only store custom rule IDs
+            if rule_id.startswith('999'):
+                rule_ids.add(rule_id)
         return list(rule_ids)
 
     def check_rule_id_conflicts(self, rule_ids):
         """
-        Check for rule ID conflicts between original and custom rules.
+        Check for rule ID conflicts between rules.
         Returns True if no conflicts found, False otherwise.
         """
-        original_ids = set()
-        custom_ids = set()
-        
+        seen_ids = set()
         for rule_id in rule_ids:
-            if rule_id.startswith('999'):
-                custom_ids.add(rule_id)
-                # Get the original ID by removing '999' prefix
-                original_id = rule_id[3:]
-                if original_id in original_ids:
-                    self.logger.error(f"Conflict found: Rule {original_id} exists with both original and custom (999) prefix")
-                    return False
-            else:
-                original_ids.add(rule_id)
-                # Check if custom version exists
-                custom_id = f"999{rule_id}"
-                if custom_id in custom_ids:
-                    self.logger.error(f"Conflict found: Rule {rule_id} exists with both original and custom (999) prefix")
-                    return False
+            if rule_id in seen_ids:
+                self.logger.error(f"Conflict found: Duplicate rule ID {rule_id}")
+                return False
+            seen_ids.add(rule_id)
         return True
 
     def add_rule_exclusions(self, rule_ids):

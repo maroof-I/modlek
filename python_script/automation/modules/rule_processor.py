@@ -29,14 +29,17 @@ def adjust_anomaly_score(rule):
 def generate_custom_rule_id(original_id):
     """
     Generate a custom rule ID that won't conflict with CRS rules.
-    We'll use the 9XXXXX range for our custom rules.
+    We'll use the 999XXXXX range for our custom rules.
     
     Args:
         original_id (str): The original CRS rule ID
         
     Returns:
-        str: A new rule ID in the 9XXXXX range
+        str: A new rule ID in the 999XXXXX range
     """
+    # If the ID already starts with 999, it's already a custom rule
+    if original_id.startswith('999'):
+        return original_id
     return f"999{original_id}"
 
 def extract_paranoia_rules(input_text):
@@ -73,12 +76,12 @@ def extract_paranoia_rules(input_text):
                 id_match = re.search(r"id\s*:\s*(\d+)", rule)
                 if id_match:
                     original_id = id_match.group(1)
+                    # Only store under the custom ID to prevent duplicates
                     custom_id = generate_custom_rule_id(original_id)
                     # Replace the original ID with our custom ID
                     adjusted_rule = re.sub(r'id:\d+', f'id:{custom_id}', rule)
                     adjusted_rule = adjust_anomaly_score(adjusted_rule)
-                    # Store rule under both original and custom IDs
-                    result[original_id] = adjusted_rule
+                    # Store only under the custom ID
                     result[custom_id] = adjusted_rule
                     
         return result
