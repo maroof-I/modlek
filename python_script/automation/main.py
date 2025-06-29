@@ -70,40 +70,53 @@ def main():
         
         # Find and add new rules
         new_rule_added = False
-        added_rule_info = None
+        added_rules_info = []  # Track all added rules
         
         # Initialize ModSecRuleUpdater first
         modsec_updater = ModSecRuleUpdater(custom_rules_path=config.custom_rules_file)
         
+        # Ensure custom_rules.conf exists
+        if not os.path.exists(config.custom_rules_file):
+            with open(config.custom_rules_file, "w") as f:
+                f.write("")  # Create empty file
+            logger.info(f"Created new custom rules file: {config.custom_rules_file}")
+        
         for rule_info in sorted_rules:
             original_id = rule_info["rule_id"]
-            custom_id = rule_info["custom_id"]  # Now getting custom_id from rule_info
+            custom_id = rule_info["custom_id"]
             
-            # Check if either the original ID or custom ID exists in extracted rules
-            if original_id in extracted_rules:
-                # Check if neither the original nor custom ID exists in current rules
-                if custom_id not in existing_rules:
-                    logger.info(f"Adding new rule ID: {custom_id} (triggered {rule_info['count']} times)")
-                    with open(config.custom_rules_file, "a") as output_file:
-                        output_file.write(extracted_rules[original_id] + "\n\n")
-                    new_rule_added = True
-                    added_rule_info = rule_info
-                else:
-                    logger.info(f"Rule ID {custom_id} already exists in custom_rules.conf, skipping...")
-                break
+            # Check if the rule exists in extracted rules and not in existing rules
+            if original_id in extracted_rules and custom_id not in existing_rules:
+                logger.info(f"Adding new rule ID: {custom_id} (triggered {rule_info['count']} times)")
+                
+                # Add the rule to custom_rules.conf
+                with open(config.custom_rules_file, "a") as output_file:
+                    rule_content = extracted_rules[original_id]
+                    # Add a marker comment for better organization
+                    output_file.write(f"\n# Rule {custom_id} (Original: {original_id})\n")
+                    output_file.write(rule_content + "\n")
+                
+                new_rule_added = True
+                added_rules_info.append(rule_info)
+                logger.info(f"Successfully added rule {custom_id}")
+        
+        # Add end marker if rules were added
+        if new_rule_added:
+            with open(config.custom_rules_file, "a") as output_file:
+                output_file.write('\nSecMarker "END-REQUEST-942-APPLICATION-ATTACK-SQLI"\n')
         
         # Update ModSecurity rules if new rules were added
         if new_rule_added:
-            logger.info("New rules added, updating ModSecurity configuration...")
+            logger.info(f"Added {len(added_rules_info)} new rules, updating ModSecurity configuration...")
             if not modsec_updater.update_rules():
                 logger.error("Failed to update ModSecurity rules")
         
-        # Send email notification
+        # Send email notification with the last added rule info
         send_attack_notification(
             config,
             config.recipient_email,
             target_results,
-            added_rule_info,
+            added_rules_info[-1] if added_rules_info else None,
             target_dist_img,
             anomaly_weight_img
         )
