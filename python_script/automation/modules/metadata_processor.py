@@ -132,7 +132,12 @@ def rules_metadata(response):
         for rules in rules_triggered:
             for rule_data in rules:
                 try:
-                    rule_id = rule_data["rule_id"]
+                    rule_id = str(rule_data["rule_id"])
+                    
+                    # Skip rules that already have 999 prefix
+                    if rule_id.startswith('999'):
+                        continue
+                        
                     paranoia_level = int(rule_data.get("paranoia_level", 0))
                     
                     if paranoia_level >= 3:

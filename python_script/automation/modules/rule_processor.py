@@ -76,12 +76,15 @@ def extract_paranoia_rules(input_text):
                 id_match = re.search(r"id\s*:\s*(\d+)", rule)
                 if id_match:
                     original_id = id_match.group(1)
-                    # Only store under the custom ID to prevent duplicates
+                    # Skip if it's already a custom rule
+                    if original_id.startswith('999'):
+                        continue
+                    # Generate custom ID and store the rule
                     custom_id = generate_custom_rule_id(original_id)
                     # Replace the original ID with our custom ID
                     adjusted_rule = re.sub(r'id:\d+', f'id:{custom_id}', rule)
                     adjusted_rule = adjust_anomaly_score(adjusted_rule)
-                    # Store only under the custom ID
+                    # Store under the custom ID
                     result[custom_id] = adjusted_rule
                     
         return result

@@ -97,6 +97,11 @@ def main():
             original_id = rule_info["rule_id"]
             custom_id = rule_info["custom_id"]
             
+            # Skip if this is already a custom rule
+            if str(original_id).startswith('999'):
+                logger.info(f"Skipping already custom rule: {original_id}")
+                continue
+            
             logger.info(f"\nProcessing rule: {original_id}")
             logger.info(f"Custom ID: {custom_id}")
             logger.info(f"Paranoia Level: {rule_info.get('paranoia_level')}")
@@ -105,16 +110,16 @@ def main():
             
             # Debug checks
             logger.info("Checking conditions:")
-            logger.info(f"1. Rule in extracted_rules: {original_id in extracted_rules}")
+            logger.info(f"1. Rule in extracted_rules: {custom_id in extracted_rules}")
             logger.info(f"2. Custom ID not in existing_rules: {custom_id not in existing_rules}")
             
             # Check if the rule exists in extracted rules and not in existing rules
-            if original_id in extracted_rules and custom_id not in existing_rules:
-                logger.info(f"✓ Adding new rule ID: {custom_id} (triggered {rule_info['count']} times)")
+            if custom_id in extracted_rules and custom_id not in existing_rules:
+                logger.info(f"✓ Adding new rule ID: {original_id} (Custom: {custom_id}) (triggered {rule_info['count']} times)")
                 
                 # Add the rule to custom_rules.conf
                 with open(config.custom_rules_file, "a") as output_file:
-                    rule_content = extracted_rules[original_id]
+                    rule_content = extracted_rules[custom_id]
                     # Add a marker comment for better organization
                     output_file.write(f"\n# Rule {custom_id} (Original: {original_id})\n")
                     output_file.write(rule_content + "\n")
@@ -122,7 +127,7 @@ def main():
                 
                 new_rule_added = True
                 added_rule_info = rule_info
-                logger.info(f"✓ Successfully added rule {custom_id}")
+                logger.info(f"✓ Successfully added rule {original_id} (Custom: {custom_id})")
                 break  # Stop after adding one rule
             else:
                 logger.info("✗ Rule not added - Conditions not met")
