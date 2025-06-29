@@ -27,13 +27,45 @@ class ModSecRuleUpdater:
         self.logger = logging.getLogger("ModSecRuleUpdater")
 
     def extract_rule_ids(self, rule_content):
-        """Extract rule IDs from rule content using regex."""
-        rule_ids = []
+        """
+        Extract rule IDs from rule content using regex.
+        Returns both original and custom (999-prefixed) rule IDs.
+        """
+        rule_ids = set()
         pattern = r'id:(\d+)'
         matches = re.finditer(pattern, rule_content)
         for match in matches:
-            rule_ids.append(match.group(1))
-        return rule_ids
+            rule_id = match.group(1)
+            rule_ids.add(rule_id)
+            # If it's an original rule ID (not starting with 999), add its custom version too
+            if not rule_id.startswith('999'):
+                rule_ids.add(f"999{rule_id}")
+        return list(rule_ids)
+
+    def check_rule_id_conflicts(self, rule_ids):
+        """
+        Check for rule ID conflicts between original and custom rules.
+        Returns True if no conflicts found, False otherwise.
+        """
+        original_ids = set()
+        custom_ids = set()
+        
+        for rule_id in rule_ids:
+            if rule_id.startswith('999'):
+                custom_ids.add(rule_id)
+                # Get the original ID by removing '999' prefix
+                original_id = rule_id[3:]
+                if original_id in original_ids:
+                    self.logger.error(f"Conflict found: Rule {original_id} exists with both original and custom (999) prefix")
+                    return False
+            else:
+                original_ids.add(rule_id)
+                # Check if custom version exists
+                custom_id = f"999{rule_id}"
+                if custom_id in custom_ids:
+                    self.logger.error(f"Conflict found: Rule {rule_id} exists with both original and custom (999) prefix")
+                    return False
+        return True
 
     def add_rule_exclusions(self, rule_ids):
         """Add rule exclusions to the exclusions file."""
@@ -114,9 +146,13 @@ class ModSecRuleUpdater:
             with open(self.custom_rules_path, 'r') as f:
                 rule_content = f.read()
             
-            # Debug: Print found rule IDs
+            # Extract and check rule IDs
             rule_ids = self.extract_rule_ids(rule_content)
             self.logger.info(f"Found rule IDs in custom_rules.conf: {rule_ids}")
+            
+            # Check for rule ID conflicts
+            if not self.check_rule_id_conflicts(rule_ids):
+                return False
             
             # Debug: Check container file
             try:
@@ -129,19 +165,12 @@ class ModSecRuleUpdater:
                 container_rule_ids = self.extract_rule_ids(result.stdout)
                 self.logger.info(f"Rule IDs in container: {container_rule_ids}")
 
-                # Check for duplicates
-                for rule_id in container_rule_ids:
-                    if container_rule_ids.count(rule_id) > 1:
-                        self.logger.error(f"Found duplicate rule ID {rule_id} in container file")
-                        return False
+                # Check for conflicts in container rules
+                if not self.check_rule_id_conflicts(container_rule_ids):
+                    return False
+
             except Exception as e:
                 self.logger.error(f"Failed to read container file: {str(e)}")
-
-            # Check for duplicates in local file
-            for rule_id in rule_ids:
-                if rule_ids.count(rule_id) > 1:
-                    self.logger.error(f"Found duplicate rule ID {rule_id} in local file")
-                    return False
 
             if not self.add_rule_exclusions(rule_ids):
                 return False
