@@ -74,18 +74,42 @@ def extract_paranoia_rules(input_text):
         for rule in rules:
             if re.search(r"tag:'paranoia-level/[34]'", rule):
                 id_match = re.search(r"id\s*:\s*(\d+)", rule)
-                if id_match:
+                severity_match = re.search(r"severity:'(\w+)'", rule)
+                
+                if id_match and severity_match:
                     original_id = id_match.group(1)
+                    severity = severity_match.group(1).upper()
+                    
                     # Skip if it's already a custom rule
                     if original_id.startswith('999'):
                         continue
+                        
                     # Generate custom ID and store the rule
                     custom_id = generate_custom_rule_id(original_id)
+                    
                     # Replace the original ID with our custom ID
                     adjusted_rule = re.sub(r'id:\d+', f'id:{custom_id}', rule)
-                    # Change paranoia level tag to custom
-                    adjusted_rule = re.sub(r"tag:'paranoia-level/[34]'", "tag:'paranoia-level/custom'", adjusted_rule)
-                    adjusted_rule = adjust_anomaly_score(adjusted_rule)
+                    
+                    # Change paranoia level tag to PL1
+                    adjusted_rule = re.sub(r"tag:'paranoia-level/[34]'", "tag:'paranoia-level/1'", adjusted_rule)
+                    
+                    # Set anomaly score based on severity
+                    score = "3" if severity == "CRITICAL" else "2" if severity == "ERROR" else "1"
+                    
+                    # Update the anomaly score variable with fixed score
+                    adjusted_rule = re.sub(
+                        r"setvar:'tx\.inbound_anomaly_score_pl[34]=\+%{tx\.[a-z_]+_anomaly_score}'",
+                        f"setvar:'tx.inbound_anomaly_score_pl1=+{score}'",
+                        adjusted_rule
+                    )
+                    
+                    # Update sql injection score with the same fixed score
+                    adjusted_rule = re.sub(
+                        r"setvar:'tx\.sql_injection_score=\+%{tx\.[a-z_]+_anomaly_score}'",
+                        f"setvar:'tx.sql_injection_score=+{score}'",
+                        adjusted_rule
+                    )
+                    
                     # Store under the custom ID
                     result[custom_id] = adjusted_rule
                     
