@@ -117,9 +117,11 @@ def rules_metadata(response):
             
         print(f"\nFound rules in {len(rules_triggered)} documents")
         
-        targeted_rules = {}
-        rule_counts = {}
+        # Initialize dictionaries to store rule information
+        rule_info_dict = {}  # Store rule information
+        rule_counts = Counter()  # Use Counter for accurate counting
         
+        # First pass: Count rule occurrences and store rule information
         for rules in rules_triggered:
             for rule_data in rules:
                 try:
@@ -127,42 +129,31 @@ def rules_metadata(response):
                     paranoia_level = int(rule_data.get("paranoia_level", 0))
                     
                     if paranoia_level >= 3:
-                        # Generate both original and custom rule IDs
-                        custom_id = f"999{rule_id}"
+                        # Count the rule occurrence
+                        rule_counts[rule_id] += 1
                         
-                        # Count for both IDs
-                        if rule_id in rule_counts:
-                            rule_counts[rule_id] += 1
-                        else:
-                            rule_counts[rule_id] = 1
-                            
-                        # Store rule info with both IDs
-                        if rule_id not in targeted_rules:
-                            rule_info = {
+                        # Store or update rule information
+                        if rule_id not in rule_info_dict:
+                            rule_info_dict[rule_id] = {
                                 "rule_id": rule_id,
-                                "custom_id": custom_id,
+                                "custom_id": f"999{rule_id}",
                                 "paranoia_level": rule_data.get("paranoia_level", ""),
                                 "severity": rule_data.get("severity", ""),
-                                "audit_data": rule_data.get("audit_data", ""),
-                                "count": rule_counts[rule_id]
+                                "audit_data": rule_data.get("audit_data", "")
                             }
-                            targeted_rules[rule_id] = rule_info
-                            targeted_rules[custom_id] = rule_info  # Store same info for custom ID
-                        else:
-                            targeted_rules[rule_id]["count"] = rule_counts[rule_id]
-                            targeted_rules[custom_id]["count"] = rule_counts[rule_id]
                             
                 except (KeyError, ValueError) as e:
                     print(f"\nError processing rule: {e}")
                     print("Problematic rule_data:", rule_data)
                     continue
-
-        # Sort rules by count
-        sorted_rules = sorted(
-            [rule for rule in targeted_rules.values() if not rule["rule_id"].startswith("999")],  # Avoid duplicates
-            key=lambda x: x["count"],
-            reverse=True
-        )
+        
+        # Second pass: Create final list with accurate counts
+        sorted_rules = []
+        for rule_id, count in rule_counts.most_common():
+            if rule_id in rule_info_dict:
+                rule_info = rule_info_dict[rule_id].copy()
+                rule_info["count"] = count
+                sorted_rules.append(rule_info)
         
         print(f"\nProcessed rules summary:")
         print(f"Total unique rules found: {len(sorted_rules)}")
@@ -170,7 +161,7 @@ def rules_metadata(response):
         if sorted_rules:
             print("Top rules:", [f"{r['rule_id']}(count: {r['count']})" for r in sorted_rules[:3]])
         
-        return sorted_rules if sorted_rules else []
+        return sorted_rules
         
     except Exception as e:
         print(f"\nError in processing rules metadata: {str(e)}")
