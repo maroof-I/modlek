@@ -33,8 +33,14 @@ def get_existing_rules(filename=None):
     try:
         with open(filename, "r") as file:
             content = file.read()
+            # Extract both original and custom rule IDs
             for id_match in re.finditer(r"id\s*:\s*(\d+)", content):
-                existing_rule_ids.add(id_match.group(1))
+                rule_id = id_match.group(1)
+                existing_rule_ids.add(rule_id)
+                # If it's not already a custom ID (doesn't start with 999),
+                # also add its potential custom ID version
+                if not rule_id.startswith('999'):
+                    existing_rule_ids.add(f"999{rule_id}")
     except FileNotFoundError:
         pass
     return existing_rule_ids
