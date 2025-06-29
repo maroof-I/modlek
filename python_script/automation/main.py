@@ -6,7 +6,7 @@ from elasticsearch import Elasticsearch
 from collections import Counter
 from datetime import datetime, timezone
 from modules.rule_processor import extract_paranoia_rules
-from modules.file_operations import save_rules_to_file, get_existing_rules
+from modules.file_operations import save_rules_to_file, get_existing_rules, load_rules_from_file
 from modules.elasticsearch_client import analyze_elasticsearch_data
 from modules.metadata_processor import target_metadata, rules_metadata, calculate_averages
 from modules.visualization import create_target_distribution_plot, create_anomaly_weight_plot
@@ -72,14 +72,26 @@ def main():
         new_rule_added = False
         added_rule_info = None
         
+        # Load current content of custom_rules.conf to check for duplicates
+        try:
+            with open(config.custom_rules_file, "r") as f:
+                current_content = f.read()
+        except FileNotFoundError:
+            current_content = ""
+        
         for rule_info in sorted_rules:
             matched_id = rule_info["rule_id"]
             if matched_id not in existing_rules and matched_id in extracted_rules:
-                logger.info(f"Adding new rule ID: {matched_id} (triggered {rule_info['count']} times)")
-                with open(config.custom_rules_file, "a") as output_file:
-                    output_file.write(extracted_rules[matched_id] + "\n\n")
-                new_rule_added = True
-                added_rule_info = rule_info
+                # Check if rule already exists in the file
+                rule_content = extracted_rules[matched_id]
+                if rule_content not in current_content:
+                    logger.info(f"Adding new rule ID: {matched_id} (triggered {rule_info['count']} times)")
+                    with open(config.custom_rules_file, "a") as output_file:
+                        output_file.write(rule_content + "\n\n")
+                    new_rule_added = True
+                    added_rule_info = rule_info
+                else:
+                    logger.info(f"Rule ID {matched_id} already exists in custom_rules.conf, skipping...")
                 break
         
         # Update ModSecurity rules if new rules were added
