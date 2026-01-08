@@ -49,7 +49,8 @@ services:
     volumes:
       - elasticsearch-data:/usr/share/elasticsearch/data
     networks:
-      - fyp_network
+      fyp_network:
+        ipv4_address: "192.168.0.109"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:9200"]
       interval: 10s # the time beween each check (curl every 15s)
