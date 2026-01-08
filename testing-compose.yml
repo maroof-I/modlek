@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  php_container:
+    image: maroof1/php_app:latest
+    container_name: php_container
+    volumes:
+      - php_data:/var/www/html/data
+    networks:
+      - fyp_network
+
+volumes:
+  php_data:
+    driver: local
+
+networks:
+  fyp_network:
+    external: true
