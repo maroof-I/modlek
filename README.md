@@ -176,6 +176,6 @@ Instead of running ELK stack as services, or compiling Modsecurity v3 in a singl
 
 ## Contact
 
-🔗 LinkedIn: https://www.linkedin.com/in/m1--asim/
-💻 GitHub: https://github.com/maroof-I
-📝 Medium: https://medium.com/@maroof1.af
+- 🔗 LinkedIn: https://www.linkedin.com/in/m1--asim/
+- 💻 GitHub: https://github.com/maroof-I
+- 📝 Medium: https://medium.com/@maroof1.af
