@@ -13,6 +13,8 @@ The system processes real web traffic inspected by ModSecurity, enriches it with
 
 ## Data Flow
 
+![Image](https://github.com/user-attachments/assets/72f6db4f-7bf9-4011-abd8-509b4c426106)
+
 ```
 ┌─────────────────────┐
 │   Web Traffic       │
