@@ -9,11 +9,12 @@ MODLEK is a security analytics and automation framework that integrates ModSecur
 
 The system processes real web traffic inspected by ModSecurity, enriches it with structured data, classifies it using a trained ML model, and uses the results to support security decisions such as identifying highly triggered attack rules.
 
+![Image](https://github.com/user-attachments/assets/72f6db4f-7bf9-4011-abd8-509b4c426106)
+
 ---
 
 ## Data Flow
 
-![Image](https://github.com/user-attachments/assets/72f6db4f-7bf9-4011-abd8-509b4c426106)
 
 ```
 ┌─────────────────────┐
