@@ -148,6 +148,10 @@ python3 ./machine_learning/fetch_and_preprocess_unclassified.py
 
 # Run the main script
 python3 ./automation/main.py
+
+# if not set, ignore email error
+# check rule added
+cat custom_rules.conf
 ```
 
 #### Available Python Scripts
@@ -173,4 +177,5 @@ Instead of running ELK stack as services, or compiling Modsecurity v3 in a singl
 ## Contact
 
 🔗 LinkedIn: https://www.linkedin.com/in/m1--asim/
-
+💻 GitHub: https://github.com/maroof-I
+📝 Medium: https://medium.com/@maroof1.af
