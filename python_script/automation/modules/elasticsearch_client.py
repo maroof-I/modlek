@@ -1,8 +1,14 @@
+import os
+from dotenv import load_dotenv
 from elasticsearch import Elasticsearch
 from elasticsearch.helpers import scan
 from collections import Counter
 
-def analyze_elasticsearch_data(es_host='http://192.168.0.109:9200', index_name='classified', request_timeout=30):
+load_dotenv()
+
+def analyze_elasticsearch_data(es_host=None, index_name='classified', request_timeout=30):
+    if es_host is None:
+        es_host = os.getenv('ELASTICSEARCH_HOST', 'http://localhost:9200')
     """
     Fetch data from Elasticsearch and calculate the percentage of attacks vs normal traffic.
     

@@ -1,3 +1,5 @@
+import os
+from dotenv import load_dotenv
 import pandas as pd
 import numpy as np
 from datetime import datetime, timezone
@@ -8,8 +10,10 @@ from modules.data_preprocessor import preprocess_http_data, standardize_column_n
 from modules.user_agent_processor import process_user_agent_features
 from modules.text_processor import create_tfidf_vectors, preprocess_text
 
+load_dotenv()
+
 # --- CONFIGURATION ---
-ES_HOST = 'http://192.168.0.109:9200'  # Change if needed
+ES_HOST = os.getenv('ELASTICSEARCH_HOST', 'http://localhost:9200')
 ES_TIMEOUT = 30  # Timeout in seconds
 MAX_RETRIES = 3
 
